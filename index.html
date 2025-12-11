@@ -2,176 +2,483 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Simulador Ag Croppers</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     
-    <link rel="stylesheet" href="style.css">
+    <style>
+        /* --- 1. DESIGN SYSTEM AGRO-APPLE --- */
+        :root {
+            --agro-green: #166534;       /* Verde Floresta Profundo */
+            --agro-dark: #052e16;        /* Verde Quase Preto */
+            --agro-gold: #d97706;        /* Dourado Colheita */
+            --surface: #ffffff;          /* Branco Puro */
+            --bg-body: #f0fdf4;          /* Fundo Verde Menta Suave */
+            --text-main: #0f172a;        /* Azul Petróleo Escuro */
+            --text-sec: #64748b;         /* Cinza Ardósia */
+            
+            --glass: rgba(255, 255, 255, 0.92);
+            --shadow-lg: 0 25px 50px -12px rgba(22, 101, 52, 0.25);
+            --radius: 24px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; outline: none; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            /* Fundo Decorativo Sutil */
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(22, 101, 52, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(217, 119, 6, 0.08) 0px, transparent 50%);
+        }
+
+        /* --- 2. SISTEMA DE TELAS (CORE) --- */
+        .view-section {
+            display: none; /* Padrão invisível */
+            min-height: 100vh;
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Classe Mágica que Ativa a Tela */
+        .view-section.active-view {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* Centralizar Login */
+        #view-login { justify-content: center; }
+        /* App e Admin alinham ao topo */
+        #view-app, #view-admin { justify-content: flex-start; }
+
+        .container-limit { width: 100%; max-width: 480px; width: 100%; }
+
+        /* --- 3. COMPONENTES VISUAIS --- */
+        
+        /* Card de Vidro */
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,1);
+            border-radius: var(--radius);
+            padding: 32px;
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Detalhe Dourado no Topo do Card */
+        .glass-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px;
+            background: linear-gradient(90deg, var(--agro-green), var(--agro-gold));
+        }
+
+        /* Tipografia */
+        h1, h2, h3 { color: var(--agro-dark); font-weight: 800; letter-spacing: -0.5px; }
+        p { color: var(--text-sec); font-size: 14px; line-height: 1.5; }
+
+        /* Inputs Modernos */
+        .input-group { margin-bottom: 20px; }
+        label { display: block; font-size: 12px; font-weight: 700; color: var(--text-sec); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        input, select {
+            width: 100%; padding: 16px;
+            background: #f8fafc; border: 2px solid transparent;
+            border-radius: 16px; color: var(--agro-dark);
+            font-size: 16px; font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        input:focus, select:focus {
+            background: #fff; border-color: var(--agro-green);
+            box-shadow: 0 0 0 4px rgba(22, 101, 52, 0.1);
+        }
+
+        /* Botões */
+        button {
+            width: 100%; padding: 18px; border: none; border-radius: 16px;
+            font-size: 16px; font-weight: 700; cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        
+        button:active { transform: scale(0.98); }
+
+        .btn-primary {
+            background: var(--agro-green); color: white;
+            box-shadow: 0 10px 20px -5px rgba(22, 101, 52, 0.3);
+        }
+        .btn-primary:hover { background: var(--agro-dark); }
+
+        .btn-secondary {
+            background: white; color: var(--agro-dark);
+            border: 2px solid #e2e8f0;
+        }
+        
+        .btn-ghost { background: transparent; color: var(--agro-green); padding: 8px; width: auto; }
+        
+        /* Cabeçalho do App */
+        .app-header {
+            width: 100%; display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0 25px 0;
+        }
+        .user-pill {
+            background: white; padding: 6px 12px 6px 6px; border-radius: 30px;
+            display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(255,255,255,0.5);
+        }
+        .avatar {
+            width: 28px; height: 28px; background: var(--agro-green); color: white;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 12px;
+        }
+
+        /* Resultados */
+        .result-area {
+            margin-top: 24px; padding-top: 24px;
+            border-top: 2px dashed #e2e8f0;
+            text-align: center;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .price-tag {
+            font-size: 42px; font-weight: 800; color: var(--agro-green);
+            letter-spacing: -1.5px; margin: 10px 0;
+        }
+        .hidden { display: none !important; }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Rodapé Minimalista */
+        footer { margin-top: auto; padding: 24px; text-align: center; font-size: 12px; color: #94a3b8; }
+        
+        /* Spinner */
+        .loader { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+    </style>
 </head>
 <body>
 
-    <div class="background-overlay"></div>
-
-    <section id="view-login" class="view-container active">
-        <div class="glass-card login-card">
-            <div class="brand-header">
-                <span class="material-icons-round icon-logo">agriculture</span>
+    <section id="view-login" class="view-section active-view">
+        <div class="container-limit">
+            <div style="text-align: center; margin-bottom: 40px;">
+                <div style="width: 80px; height: 80px; background: var(--agro-green); border-radius: 24px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 20px 40px -10px rgba(22, 101, 52, 0.4);">
+                    <span class="material-icons-round" style="font-size: 40px; color: white;">agriculture</span>
+                </div>
                 <h1>Ag Croppers</h1>
-                <p>Acesso Corporativo</p>
+                <p>Sistema de Cotação Inteligente</p>
             </div>
-            
-            <form id="form-login">
-                <div class="input-group">
-                    <label>Usuário</label>
-                    <input type="text" id="login-user" placeholder="Digite seu usuário">
-                </div>
-                <div class="input-group">
-                    <label>Senha</label>
-                    <input type="password" id="login-pass" placeholder="••••••••">
-                </div>
-                <div id="login-error" class="error-msg hidden">Credenciais inválidas.</div>
-                <button type="submit" class="btn-primary">Entrar no Sistema</button>
-            </form>
+
+            <div class="glass-card">
+                <form id="form-login">
+                    <div class="input-group">
+                        <label>ID do Usuário</label>
+                        <input type="text" id="login-user" placeholder="Ex: admin">
+                    </div>
+                    <div class="input-group">
+                        <label>Senha de Acesso</label>
+                        <input type="password" id="login-pass" placeholder="••••••">
+                    </div>
+                    
+                    <div id="login-error" style="color: #ef4444; font-size: 13px; margin-bottom: 20px; display: none; background: #fef2f2; padding: 10px; border-radius: 8px;">
+                        Usuário ou senha incorretos.
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        <span>Acessar Painel</span>
+                        <span class="material-icons-round">arrow_forward</span>
+                    </button>
+                </form>
+            </div>
         </div>
+        <footer>Designed by <strong>Luis Barrelin</strong> &copy; 2025</footer>
     </section>
 
-    <section id="view-app" class="view-container hidden">
-        <header class="app-header">
-            <div class="logo-area">
-                <span class="material-icons-round">agriculture</span>
-                <span>Ag Croppers</span>
-            </div>
-            <div class="user-area">
-                <span id="display-username">Usuário</span>
-                <button onclick="logout()" class="btn-icon" title="Sair"><span class="material-icons-round">logout</span></button>
-            </div>
-        </header>
 
-        <main class="content-wrapper">
-            <button id="btn-admin-panel" class="btn-secondary hidden" onclick="toggleView('view-admin')">
-                <span class="material-icons-round">settings</span> Configurações Admin
+    <section id="view-app" class="view-section">
+        <div class="container-limit">
+            <header class="app-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="material-icons-round" style="color: var(--agro-green);">agriculture</span>
+                    <span style="font-weight: 800; color: var(--agro-dark);">Ag Croppers</span>
+                </div>
+                <div class="user-pill">
+                    <div class="avatar" id="avatar-initial">U</div>
+                    <span id="display-name">Usuário</span>
+                    <button onclick="logout()" class="btn-ghost" style="padding: 0; margin-left: 5px;">
+                        <span class="material-icons-round" style="font-size: 18px; color: #94a3b8;">logout</span>
+                    </button>
+                </div>
+            </header>
+
+            <button id="btn-go-admin" onclick="switchView('view-admin')" class="btn-secondary hidden" style="margin-bottom: 20px; font-size: 14px;">
+                <span class="material-icons-round">admin_panel_settings</span>
+                Painel Administrativo
             </button>
 
-            <div class="glass-card main-card">
-                <h2>Simulador de Frete Agrícola</h2>
-                <p class="subtitle">Cotação de transporte de grãos e insumos</p>
-
+            <div class="glass-card">
+                <h2 style="margin-bottom: 25px;">Nova Simulação</h2>
+                
                 <form id="form-simulador">
-                    <div class="section-label">📍 Origem</div>
-                    <div class="row">
-                        <div class="col-sm">
-                            <label>Estado (UF)</label>
-                            <select id="origem-uf" class="input-select">
-                                <option value="" disabled selected>UF</option>
-                                <option value="MT">MT</option><option value="PR">PR</option>
-                                <option value="GO">GO</option><option value="SP">SP</option>
-                                <option value="MS">MS</option><option value="MG">MG</option>
-                                <option value="RS">RS</option><option value="BA">BA</option>
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label>UF Origem</label>
+                            <select id="uf-origem">
+                                <option>MT</option><option>PR</option><option>GO</option>
+                                <option>SP</option><option>MS</option><option>MG</option>
                             </select>
                         </div>
-                        <div class="col-lg">
-                            <label>Cidade</label>
-                            <input type="text" id="origem-cidade" placeholder="Ex: Sorriso">
+                        <div>
+                            <label>Cidade Origem</label>
+                            <input type="text" id="city-origem" placeholder="Ex: Sorriso">
                         </div>
                     </div>
 
-                    <div class="section-label mt-4">🏁 Destino</div>
-                    <div class="row">
-                        <div class="col-sm">
-                            <label>Estado (UF)</label>
-                            <select id="destino-uf" class="input-select">
-                                <option value="" disabled selected>UF</option>
-                                <option value="SP">SP</option><option value="PR">PR</option>
-                                <option value="SC">SC</option><option value="RS">RS</option>
-                                <option value="Santos">Export (Santos)</option>
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label>UF Destino</label>
+                            <select id="uf-destino">
+                                <option>SP</option><option>PR</option><option>SC</option>
+                                <option>Santos</option>
                             </select>
                         </div>
-                        <div class="col-lg">
-                            <label>Cidade</label>
-                            <input type="text" id="destino-cidade" placeholder="Ex: Paranaguá">
+                        <div>
+                            <label>Cidade Destino</label>
+                            <input type="text" id="city-destino" placeholder="Ex: Santos">
                         </div>
                     </div>
 
-                    <div class="section-label mt-4">⚖️ Carga</div>
                     <div class="input-group">
-                        <label>Peso Total (Toneladas)</label>
-                        <div class="input-wrapper">
-                            <input type="number" id="peso-ton" placeholder="0.0" step="0.1">
-                            <span class="suffix">ton</span>
-                        </div>
+                        <label>Peso da Carga (Toneladas)</label>
+                        <input type="number" id="peso" placeholder="0.00" step="0.1">
                     </div>
 
-                    <button type="submit" class="btn-primary mt-6">
-                        <span>Calcular Frete</span>
+                    <button type="submit" class="btn-primary">
+                        <span>Calcular Estimativa</span>
                         <div class="loader"></div>
                     </button>
                 </form>
 
-                <div id="resultado-area" class="result-box hidden">
-                    <div class="divider"></div>
-                    <h3>Cotação Estimada</h3>
-                    <div class="price-display">
-                        <span class="currency">R$</span>
-                        <span id="price-value">0,00</span>
+                <div id="result-box" class="result-area hidden">
+                    <p style="text-transform: uppercase; font-size: 11px; font-weight: 700; letter-spacing: 1px;">Valor Estimado do Frete</p>
+                    <div class="price-tag" id="price-value">R$ 0,00</div>
+                    <div style="background: #ecfdf5; color: #166534; padding: 10px; border-radius: 12px; font-size: 13px; font-weight: 500;">
+                        Cálculo baseado na tabela ANTT vigente + Tarifa Admin.
                     </div>
-                    <p class="price-obs">*Valor médio de mercado baseado na rota e tonelagem.</p>
                 </div>
             </div>
-        </main>
+        </div>
+        <footer>Designed by <strong>Luis Barrelin</strong> &copy; 2025</footer>
     </section>
 
-    <section id="view-admin" class="view-container hidden">
-        <header class="app-header admin-header">
-            <div class="logo-area">
-                <span class="material-icons-round">admin_panel_settings</span>
-                <span>Painel Administrativo</span>
-            </div>
-            <button onclick="toggleView('view-app')" class="btn-icon text-white"><span class="material-icons-round">close</span></button>
-        </header>
 
-        <main class="content-wrapper">
-            
-            <div class="glass-card mb-4">
-                <h3>Gerenciar Usuários</h3>
+    <section id="view-admin" class="view-section">
+        <div class="container-limit">
+            <header class="app-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="material-icons-round" style="color: var(--agro-green);">admin_panel_settings</span>
+                    <span style="font-weight: 800; color: var(--agro-dark);">Admin</span>
+                </div>
+                <button onclick="switchView('view-app')" class="btn-secondary" style="width: auto; padding: 8px 16px; font-size: 13px;">
+                    Voltar ao App
+                </button>
+            </header>
+
+            <div class="glass-card" style="margin-bottom: 20px;">
+                <h3 style="margin-bottom: 20px;">Cadastrar Usuário</h3>
                 <form id="form-create-user">
-                    <div class="row">
-                        <div class="col-lg">
-                            <label>Novo Usuário</label>
-                            <input type="text" id="new-user" placeholder="Login">
-                        </div>
-                        <div class="col-lg">
-                            <label>Senha</label>
-                            <input type="text" id="new-pass" placeholder="Senha">
-                        </div>
+                    <div class="input-group">
+                        <label>Novo Login</label>
+                        <input type="text" id="new-user" placeholder="Usuário">
                     </div>
-                    <button type="submit" class="btn-secondary mt-4 w-full">Criar Acesso</button>
+                    <div class="input-group">
+                        <label>Nova Senha</label>
+                        <input type="text" id="new-pass" placeholder="Senha">
+                    </div>
+                    <button type="submit" class="btn-primary" style="background: var(--agro-dark);">Criar Acesso</button>
+                    <p id="msg-user" style="color: var(--agro-green); font-size: 13px; margin-top: 10px; display: none;">Usuário criado com sucesso!</p>
                 </form>
-                <div id="user-msg" class="success-msg hidden">Usuário criado com sucesso!</div>
             </div>
 
             <div class="glass-card">
-                <h3>Parâmetros de Cálculo</h3>
-                <form id="form-config">
-                    <div class="input-group">
-                        <label>Preço Base por Tonelada/km (R$)</label>
-                        <input type="number" id="conf-price" value="0.85" step="0.01">
-                    </div>
-                    <button type="button" onclick="saveConfig()" class="btn-primary w-full">Salvar Configurações</button>
-                </form>
-                <div id="config-msg" class="success-msg hidden">Parâmetros atualizados!</div>
+                <h3 style="margin-bottom: 20px;">Parâmetros de Cálculo</h3>
+                <div class="input-group">
+                    <label>Preço Base (R$ / Ton / Km)</label>
+                    <input type="number" id="config-price" step="0.01">
+                </div>
+                <button onclick="saveConfig()" class="btn-secondary">Atualizar Tabela</button>
+                <p id="msg-config" style="color: var(--agro-green); font-size: 13px; margin-top: 10px; display: none;">Tabela atualizada!</p>
             </div>
-
-        </main>
+        </div>
+        <footer>Designed by <strong>Luis Barrelin</strong> &copy; 2025</footer>
     </section>
 
-    <footer>
-        Designed by <strong>Luis Barrelin</strong> &copy; 2025
-    </footer>
 
-    <script src="script.js"></script>
+    <script>
+        // --- 1. BANCO DE DADOS LOCAL ---
+        const DB_KEY = "ag_croppers_full_v1";
+
+        function initDB() {
+            if (!localStorage.getItem(DB_KEY)) {
+                const initialData = {
+                    users: [
+                        { user: "admin", pass: "admin", role: "admin" }
+                    ],
+                    config: { pricePerTonKm: 0.85 }
+                };
+                localStorage.setItem(DB_KEY, JSON.stringify(initialData));
+            }
+        }
+        function getDB() { return JSON.parse(localStorage.getItem(DB_KEY)); }
+        function saveDB(data) { localStorage.setItem(DB_KEY, JSON.stringify(data)); }
+
+        let currentUser = null;
+
+        // --- 2. SISTEMA DE NAVEGAÇÃO ---
+        function switchView(viewId) {
+            // Remove a classe active de todos
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.remove('active-view');
+            });
+            // Adiciona na tela desejada após breve delay para evitar conflito de renderização
+            setTimeout(() => {
+                document.getElementById(viewId).classList.add('active-view');
+            }, 50);
+        }
+
+        // --- 3. AUTENTICAÇÃO ---
+        document.getElementById('form-login').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const u = document.getElementById('login-user').value.trim();
+            const p = document.getElementById('login-pass').value.trim();
+            
+            const db = getDB();
+            const userFound = db.users.find(x => x.user === u && x.pass === p);
+
+            if(userFound) {
+                currentUser = userFound;
+                // Configurar UI
+                document.getElementById('display-name').innerText = currentUser.user;
+                document.getElementById('avatar-initial').innerText = currentUser.user.charAt(0).toUpperCase();
+                
+                // Botão Admin
+                if(currentUser.role === 'admin') {
+                    document.getElementById('btn-go-admin').classList.remove('hidden');
+                    document.getElementById('config-price').value = db.config.pricePerTonKm;
+                } else {
+                    document.getElementById('btn-go-admin').classList.add('hidden');
+                }
+
+                // Limpar erro e ir para App
+                document.getElementById('login-error').style.display = 'none';
+                switchView('view-app');
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+            }
+        });
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('login-user').value = '';
+            document.getElementById('login-pass').value = '';
+            switchView('view-login');
+        }
+
+        // --- 4. SIMULADOR ---
+        document.getElementById('form-simulador').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const btn = e.target.querySelector('button');
+            const loader = btn.querySelector('.loader');
+            const span = btn.querySelector('span');
+            const resultBox = document.getElementById('result-box');
+            
+            const peso = parseFloat(document.getElementById('peso').value);
+            const origem = document.getElementById('city-origem').value;
+            const destino = document.getElementById('city-destino').value;
+
+            if(!peso || !origem || !destino) {
+                alert("Preencha todos os dados!");
+                return;
+            }
+
+            // Animação Loading
+            span.style.display = 'none';
+            loader.style.display = 'block';
+            resultBox.classList.add('hidden');
+
+            setTimeout(() => {
+                // Cálculo Matemático (Hash Distância)
+                const rota = origem.toLowerCase() + destino.toLowerCase();
+                let hash = 0;
+                for (let i = 0; i < rota.length; i++) hash = rota.charCodeAt(i) + ((hash << 5) - hash);
+                const km = (Math.abs(hash) % 1500) + 200; // Gera distancia entre 200 e 1700km constante para a mesma rota
+
+                const db = getDB();
+                const preco = db.config.pricePerTonKm;
+                
+                const total = peso * km * preco;
+
+                document.getElementById('price-value').innerText = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                
+                resultBox.classList.remove('hidden');
+                span.style.display = 'block';
+                loader.style.display = 'none';
+            }, 800);
+        });
+
+        // --- 5. ADMIN ---
+        document.getElementById('form-create-user').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nu = document.getElementById('new-user').value;
+            const np = document.getElementById('new-pass').value;
+            
+            if(nu && np) {
+                const db = getDB();
+                db.users.push({ user: nu, pass: np, role: 'user' });
+                saveDB(db);
+                
+                const msg = document.getElementById('msg-user');
+                msg.style.display = 'block';
+                setTimeout(() => msg.style.display = 'none', 3000);
+                e.target.reset();
+            }
+        });
+
+        function saveConfig() {
+            const val = parseFloat(document.getElementById('config-price').value);
+            if(val) {
+                const db = getDB();
+                db.config.pricePerTonKm = val;
+                saveDB(db);
+                
+                const msg = document.getElementById('msg-config');
+                msg.style.display = 'block';
+                setTimeout(() => msg.style.display = 'none', 3000);
+            }
+        }
+
+        // INICIALIZAÇÃO
+        initDB();
+        // Força tela de login ao carregar
+        switchView('view-login');
+
+    </script>
 </body>
 </html>
