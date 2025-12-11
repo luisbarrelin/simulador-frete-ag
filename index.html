@@ -2,199 +2,86 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Simulador de Frete Premium</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Frete Pro</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        apple: {
-                            blue: '#007AFF',
-                            bg: '#F5F5F7',
-                            text: '#1D1D1F',
-                            gray: '#86868B'
-                        }
-                    },
-                    boxShadow: {
-                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.10)',
-                        'float': '0 20px 40px rgba(0,0,0,0.1)'
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        body { -webkit-font-smoothing: antialiased; background-color: #F5F5F7; }
-        
-        /* Glassmorphism */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-        }
-
-        /* Esconde elementos do Google Maps */
-        .gmnoprint, .gm-control-active, .gm-style-cc { display: none; }
-        
-        /* Animação */
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-enter { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="h-screen w-screen overflow-hidden relative flex items-center justify-center bg-gray-100">
+<body>
 
-    <div id="map" class="absolute inset-0 z-0"></div>
-
-    <main class="absolute z-10 w-full max-w-md p-4 pointer-events-none flex justify-center">
-        
-        <div class="glass-panel pointer-events-auto w-full rounded-3xl shadow-float p-6 animate-enter transition-all duration-300 ease-in-out">
+    <div class="main-wrapper">
+        <main class="glass-card">
             
-            <div class="mb-6 text-center">
-                <h1 class="text-2xl font-bold text-apple-text tracking-tight">Simular Rota</h1>
-                <p class="text-sm text-apple-gray mt-1">Logística Inteligente</p>
-            </div>
+            <header>
+                <h1>Simular Frete</h1>
+                <p>Logística inteligente e precisa.</p>
+            </header>
 
-            <div class="space-y-4">
-                <div class="relative group">
-                    <span class="material-icons-round absolute left-4 top-3.5 text-apple-blue">place</span>
-                    <input id="origin" type="text" placeholder="Local de Coleta" 
-                        class="w-full bg-white/80 pl-12 pr-4 py-3.5 rounded-xl text-sm font-medium text-apple-text placeholder-gray-400 border border-transparent focus:border-apple-blue focus:ring-4 focus:ring-apple-blue/10 outline-none transition-all shadow-sm">
+            <form id="frete-form">
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="cep-origem">CEP Origem</label>
+                        <input type="text" id="cep-origem" placeholder="00000-000" maxlength="9">
+                    </div>
+                    <div class="input-group">
+                        <label for="cep-destino">CEP Destino</label>
+                        <input type="text" id="cep-destino" placeholder="00000-000" maxlength="9">
+                    </div>
                 </div>
 
-                <div class="relative group">
-                    <span class="material-icons-round absolute left-4 top-3.5 text-orange-500">local_shipping</span>
-                    <input id="destination" type="text" placeholder="Local de Entrega" 
-                        class="w-full bg-white/80 pl-12 pr-4 py-3.5 rounded-xl text-sm font-medium text-apple-text placeholder-gray-400 border border-transparent focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all shadow-sm">
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="peso">Peso (kg)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="peso" placeholder="0.0" step="0.1">
+                            <span class="suffix">kg</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="valor">Valor Declarado</label>
+                        <div class="input-wrapper">
+                            <span class="prefix">R$</span>
+                            <input type="number" id="valor" placeholder="0,00" step="0.01">
+                        </div>
+                    </div>
                 </div>
 
-                <button id="btn-calc" onclick="calculateRoute()" 
-                    class="w-full bg-apple-blue hover:bg-blue-600 text-white font-semibold py-4 rounded-xl shadow-lg shadow-blue-500/30 transform active:scale-[0.98] transition-all duration-200 flex justify-center items-center">
-                    <span>Calcular Frete</span>
+                <div class="input-group">
+                    <label>Dimensões (cm)</label>
+                    <div class="dimensions-grid">
+                        <input type="number" id="altura" placeholder="Alt">
+                        <input type="number" id="largura" placeholder="Larg">
+                        <input type="number" id="comprimento" placeholder="Comp">
+                    </div>
+                </div>
+
+                <div id="error-message" class="error-box">
+                    Preencha todos os campos obrigatórios.
+                </div>
+
+                <button type="submit" id="btn-calculate">
+                    <span>Calcular Estimativa</span>
+                    <div class="spinner"></div>
                 </button>
+            </form>
+
+            <div id="results-area" class="results-container hidden">
+                <div class="divider"></div>
+                <h2>Melhores Opções</h2>
+                <div id="cards-list"></div>
             </div>
 
-            <div id="result-area" class="hidden mt-8 pt-6 border-t border-gray-200/60 animate-enter">
-                <div class="flex justify-between items-end">
-                    <div>
-                        <p class="text-xs uppercase font-bold text-gray-400 tracking-wider">Custo Estimado</p>
-                        <p id="price-tag" class="text-3xl font-bold text-apple-text mt-1 tracking-tight">R$ 0,00</p>
-                    </div>
-                    <div class="text-right space-y-1">
-                        <div class="flex items-center justify-end text-apple-gray text-sm">
-                            <span class="material-icons-round text-base mr-1">straighten</span>
-                            <span id="dist-tag">0 km</span>
-                        </div>
-                        <div class="flex items-center justify-end text-apple-gray text-sm">
-                            <span class="material-icons-round text-base mr-1">schedule</span>
-                            <span id="time-tag">0 min</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        </main>
+        
+        <footer>
+            <p>Powered by Apple Logic System</p>
+        </footer>
+    </div>
 
-        </div>
-    </main>
-
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA_72sMckDqSP9ePrSYajao-kONG5jNWK8&libraries=places"></script>
-    
-    <script>
-        // CONFIGURAÇÃO DE PREÇOS
-        const CONFIG = {
-            precoPorKm: 2.80,    // R$ por Km
-            taxaFixa: 60.00,     // Taxa de saída
-            margemLucro: 1.25    // +25% de margem
-        };
-
-        let map, directionsService, directionsRenderer;
-
-        function initApp() {
-            const mapStyles = [
-                { "elementType": "geometry", "stylers": [{ "color": "#f5f5f5" }] },
-                { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
-                { "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
-                { "elementType": "labels.text.stroke", "stylers": [{ "color": "#f5f5f5" }] },
-                { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#ffffff" }] },
-                { "featureType": "road.arterial", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
-                { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#dadada" }] },
-                { "featureType": "road.highway", "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
-                { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#e9e9e9" }] },
-                { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#9e9e9e" }] }
-            ];
-
-            map = new google.maps.Map(document.getElementById("map"), {
-                center: { lat: -23.5505, lng: -46.6333 },
-                zoom: 10,
-                styles: mapStyles,
-                disableDefaultUI: true,
-                zoomControl: false,
-            });
-
-            directionsService = new google.maps.DirectionsService();
-            directionsRenderer = new google.maps.DirectionsRenderer({
-                map: map,
-                polylineOptions: { strokeColor: "#007AFF", strokeWeight: 6, strokeOpacity: 0.8 },
-                suppressMarkers: false
-            });
-
-            new google.maps.places.Autocomplete(document.getElementById("origin"));
-            new google.maps.places.Autocomplete(document.getElementById("destination"));
-        }
-
-        function calculateRoute() {
-            const origin = document.getElementById("origin").value;
-            const dest = document.getElementById("destination").value;
-            const btn = document.getElementById("btn-calc");
-
-            if (!origin || !dest) return alert("Por favor, preencha os dois endereços.");
-
-            const originalBtnText = btn.innerHTML;
-            btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
-            btn.disabled = true;
-
-            directionsService.route(
-                { origin: origin, destination: dest, travelMode: 'DRIVING' },
-                (response, status) => {
-                    btn.innerHTML = originalBtnText;
-                    btn.disabled = false;
-
-                    if (status === "OK") {
-                        directionsRenderer.setDirections(response);
-                        
-                        const leg = response.routes[0].legs[0];
-                        const distanciaKm = leg.distance.value / 1000;
-                        const tempoTexto = leg.duration.text;
-
-                        const custoOperacional = (distanciaKm * CONFIG.precoPorKm) + CONFIG.taxaFixa;
-                        const precoFinal = custoOperacional * CONFIG.margemLucro;
-
-                        document.getElementById("price-tag").innerText = precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                        document.getElementById("dist-tag").innerText = leg.distance.text;
-                        document.getElementById("time-tag").innerText = tempoTexto;
-
-                        document.getElementById("result-area").classList.remove("hidden");
-                    } else {
-                        alert("Não foi possível traçar a rota. Verifique os endereços.");
-                    }
-                }
-            );
-        }
-
-        window.onload = initApp;
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
