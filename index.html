@@ -3,90 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Frete Pro</title>
+    <title>Simulador Ag Croppers</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-
+    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="app-wrapper">
-        <main class="glass-card">
+    <div class="background-overlay"></div>
+
+    <section id="view-login" class="view-container active">
+        <div class="glass-card login-card">
+            <div class="brand-header">
+                <span class="material-icons-round icon-logo">agriculture</span>
+                <h1>Ag Croppers</h1>
+                <p>Acesso Corporativo</p>
+            </div>
             
-            <header>
-                <div class="icon-header">
-                    <span class="material-icons-round">local_shipping</span>
-                </div>
-                <h1>Simular Frete</h1>
-                <p>Cotação precisa e inteligente.</p>
-            </header>
-
-            <form id="frete-form">
-                <div class="input-row">
-                    <div class="input-group">
-                        <label for="cep-origin">CEP Origem</label>
-                        <input type="text" id="cep-origin" placeholder="00000-000" maxlength="9" autocomplete="off">
-                    </div>
-                    <div class="input-group">
-                        <label for="cep-dest">CEP Destino</label>
-                        <input type="text" id="cep-dest" placeholder="00000-000" maxlength="9" autocomplete="off">
-                    </div>
-                </div>
-
-                <div class="input-row">
-                    <div class="input-group">
-                        <label>Peso (kg)</label>
-                        <div class="input-wrapper">
-                            <input type="number" id="weight" placeholder="0.0" step="0.1">
-                            <span class="unit">kg</span>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <label>Valor (R$)</label>
-                        <div class="input-wrapper">
-                            <span class="prefix">R$</span>
-                            <input type="number" id="value" placeholder="0,00" step="0.01">
-                        </div>
-                    </div>
-                </div>
-
+            <form id="form-login">
                 <div class="input-group">
-                    <label>Dimensões da Caixa (cm)</label>
-                    <div class="dimensions-grid">
-                        <input type="number" id="height" placeholder="Alt">
-                        <input type="number" id="width" placeholder="Larg">
-                        <input type="number" id="length" placeholder="Comp">
-                    </div>
+                    <label>Usuário</label>
+                    <input type="text" id="login-user" placeholder="Digite seu usuário">
                 </div>
-
-                <div id="error-msg" class="error-box hidden">
-                    <span class="material-icons-round">error_outline</span>
-                    <span class="text">Preencha todos os campos obrigatórios.</span>
+                <div class="input-group">
+                    <label>Senha</label>
+                    <input type="password" id="login-pass" placeholder="••••••••">
                 </div>
-
-                <button type="submit" id="btn-calc">
-                    <span class="btn-text">Calcular Estimativa</span>
-                    <div class="loader"></div>
-                </button>
+                <div id="login-error" class="error-msg hidden">Credenciais inválidas.</div>
+                <button type="submit" class="btn-primary">Entrar no Sistema</button>
             </form>
+        </div>
+    </section>
 
-            <div id="results" class="results-container hidden">
-                <div class="divider"></div>
-                <h2>Opções Disponíveis</h2>
-                <div id="cards-list" class="cards-list"></div>
+    <section id="view-app" class="view-container hidden">
+        <header class="app-header">
+            <div class="logo-area">
+                <span class="material-icons-round">agriculture</span>
+                <span>Ag Croppers</span>
+            </div>
+            <div class="user-area">
+                <span id="display-username">Usuário</span>
+                <button onclick="logout()" class="btn-icon" title="Sair"><span class="material-icons-round">logout</span></button>
+            </div>
+        </header>
+
+        <main class="content-wrapper">
+            <button id="btn-admin-panel" class="btn-secondary hidden" onclick="toggleView('view-admin')">
+                <span class="material-icons-round">settings</span> Configurações Admin
+            </button>
+
+            <div class="glass-card main-card">
+                <h2>Simulador de Frete Agrícola</h2>
+                <p class="subtitle">Cotação de transporte de grãos e insumos</p>
+
+                <form id="form-simulador">
+                    <div class="section-label">📍 Origem</div>
+                    <div class="row">
+                        <div class="col-sm">
+                            <label>Estado (UF)</label>
+                            <select id="origem-uf" class="input-select">
+                                <option value="" disabled selected>UF</option>
+                                <option value="MT">MT</option><option value="PR">PR</option>
+                                <option value="GO">GO</option><option value="SP">SP</option>
+                                <option value="MS">MS</option><option value="MG">MG</option>
+                                <option value="RS">RS</option><option value="BA">BA</option>
+                            </select>
+                        </div>
+                        <div class="col-lg">
+                            <label>Cidade</label>
+                            <input type="text" id="origem-cidade" placeholder="Ex: Sorriso">
+                        </div>
+                    </div>
+
+                    <div class="section-label mt-4">🏁 Destino</div>
+                    <div class="row">
+                        <div class="col-sm">
+                            <label>Estado (UF)</label>
+                            <select id="destino-uf" class="input-select">
+                                <option value="" disabled selected>UF</option>
+                                <option value="SP">SP</option><option value="PR">PR</option>
+                                <option value="SC">SC</option><option value="RS">RS</option>
+                                <option value="Santos">Export (Santos)</option>
+                            </select>
+                        </div>
+                        <div class="col-lg">
+                            <label>Cidade</label>
+                            <input type="text" id="destino-cidade" placeholder="Ex: Paranaguá">
+                        </div>
+                    </div>
+
+                    <div class="section-label mt-4">⚖️ Carga</div>
+                    <div class="input-group">
+                        <label>Peso Total (Toneladas)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="peso-ton" placeholder="0.0" step="0.1">
+                            <span class="suffix">ton</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary mt-6">
+                        <span>Calcular Frete</span>
+                        <div class="loader"></div>
+                    </button>
+                </form>
+
+                <div id="resultado-area" class="result-box hidden">
+                    <div class="divider"></div>
+                    <h3>Cotação Estimada</h3>
+                    <div class="price-display">
+                        <span class="currency">R$</span>
+                        <span id="price-value">0,00</span>
+                    </div>
+                    <p class="price-obs">*Valor médio de mercado baseado na rota e tonelagem.</p>
+                </div>
+            </div>
+        </main>
+    </section>
+
+    <section id="view-admin" class="view-container hidden">
+        <header class="app-header admin-header">
+            <div class="logo-area">
+                <span class="material-icons-round">admin_panel_settings</span>
+                <span>Painel Administrativo</span>
+            </div>
+            <button onclick="toggleView('view-app')" class="btn-icon text-white"><span class="material-icons-round">close</span></button>
+        </header>
+
+        <main class="content-wrapper">
+            
+            <div class="glass-card mb-4">
+                <h3>Gerenciar Usuários</h3>
+                <form id="form-create-user">
+                    <div class="row">
+                        <div class="col-lg">
+                            <label>Novo Usuário</label>
+                            <input type="text" id="new-user" placeholder="Login">
+                        </div>
+                        <div class="col-lg">
+                            <label>Senha</label>
+                            <input type="text" id="new-pass" placeholder="Senha">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-secondary mt-4 w-full">Criar Acesso</button>
+                </form>
+                <div id="user-msg" class="success-msg hidden">Usuário criado com sucesso!</div>
+            </div>
+
+            <div class="glass-card">
+                <h3>Parâmetros de Cálculo</h3>
+                <form id="form-config">
+                    <div class="input-group">
+                        <label>Preço Base por Tonelada/km (R$)</label>
+                        <input type="number" id="conf-price" value="0.85" step="0.01">
+                    </div>
+                    <button type="button" onclick="saveConfig()" class="btn-primary w-full">Salvar Configurações</button>
+                </form>
+                <div id="config-msg" class="success-msg hidden">Parâmetros atualizados!</div>
             </div>
 
         </main>
+    </section>
 
-        <footer>
-            Logística Powered by <strong>Apple Logic™</strong>
-        </footer>
-    </div>
+    <footer>
+        Designed by <strong>Luis Barrelin</strong> &copy; 2025
+    </footer>
 
     <script src="script.js"></script>
 </body>
