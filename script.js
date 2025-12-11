@@ -1,121 +1,189 @@
-document.addEventListener('DOMContentLoaded', () => {
-    
-    // --- Elementos ---
-    const form = document.getElementById('frete-form');
-    const btn = document.getElementById('btn-calc');
-    const errorMsg = document.getElementById('error-msg');
-    const resultsDiv = document.getElementById('results');
-    const cardsList = document.getElementById('cards-list');
+/* --- BANCO DE DADOS LOCAL (SIMULAÇÃO) --- */
+const DB_KEY = "ag_croppers_db";
 
-    // --- Máscara de CEP (00000-000) ---
-    const mascaraCep = (event) => {
-        let input = event.target;
-        input.value = input.value.replace(/\D/g, '')
-                                 .replace(/^(\d{5})(\d)/, '$1-$2');
-    };
-
-    document.getElementById('cep-origin').addEventListener('input', mascaraCep);
-    document.getElementById('cep-dest').addEventListener('input', mascaraCep);
-
-    // --- Lógica Principal ---
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        // 1. Pegar Valores
-        const peso = parseFloat(document.getElementById('weight').value);
-        const altura = parseFloat(document.getElementById('height').value);
-        const largura = parseFloat(document.getElementById('width').value);
-        const comprimento = parseFloat(document.getElementById('length').value);
-        const valorDeclarado = parseFloat(document.getElementById('value').value) || 0;
-        const cepOrigem = document.getElementById('cep-origin').value;
-        const cepDest = document.getElementById('cep-dest').value;
-
-        // 2. Validar
-        if(!peso || !altura || !largura || !comprimento || cepOrigem.length < 9 || cepDest.length < 9) {
-            errorMsg.classList.remove('hidden');
-            return;
-        }
-        errorMsg.classList.add('hidden');
-
-        // 3. Estado de Carregamento
-        btn.disabled = true;
-        btn.querySelector('.btn-text').style.display = 'none';
-        btn.querySelector('.loader').style.display = 'block';
-        resultsDiv.classList.add('hidden');
-
-        // 4. Calcular (Simulando delay de rede)
-        setTimeout(() => {
-            const opcoes = calcularLogica(peso, altura, largura, comprimento, valorDeclarado);
-            renderizarCards(opcoes);
-            
-            // Restaurar botão
-            btn.disabled = false;
-            btn.querySelector('.btn-text').style.display = 'block';
-            btn.querySelector('.loader').style.display = 'none';
-        }, 1000);
-    });
-
-    // --- O Cérebro Matemático (Sua Lógica) ---
-    function calcularLogica(peso, alt, larg, comp, valor) {
-        // Base R$ 10,00
-        const base = 10.00;
-        
-        // Peso: R$ 1,20 por kg
-        const custoPeso = peso * 1.20;
-        
-        // Volume: R$ 0,05 por cm³ (fictício, ajustado para não ficar milionário)
-        // Usando fator de cubagem padrão transporte (300) para realismo
-        const cubagem = (alt * larg * comp) / 6000; 
-        const custoVolume = cubagem * 5.00; // R$ 5,00 por kg cúbico
-
-        // Seguro: 0.5% do valor
-        const seguro = valor * 0.005;
-
-        // Preço Base Final
-        const precoFinal = base + Math.max(custoPeso, custoVolume) + seguro;
-
-        return [
-            {
-                nome: "Econômico (PAC)",
-                prazo: "7 a 10 dias úteis",
-                preco: precoFinal,
-                tag: null
-            },
-            {
-                nome: "Expresso (Sedex)",
-                prazo: "2 a 4 dias úteis",
-                preco: precoFinal * 1.6, // 60% mais caro
-                tag: "Rápido"
-            },
-            {
-                nome: "Flash Delivery",
-                prazo: "Até 24 horas",
-                preco: precoFinal * 2.5, // 150% mais caro
-                tag: "VIP"
+// Inicializa o banco se não existir
+function initDB() {
+    if (!localStorage.getItem(DB_KEY)) {
+        const initialData = {
+            users: [
+                { user: "admin", pass: "admin", role: "admin" } // Usuário Padrão
+            ],
+            config: {
+                pricePerTonKm: 0.85 // Preço padrão
             }
-        ];
+        };
+        localStorage.setItem(DB_KEY, JSON.stringify(initialData));
     }
+}
 
-    // --- Renderizar na Tela ---
-    function renderizarCards(lista) {
-        cardsList.innerHTML = '';
+function getDB() {
+    return JSON.parse(localStorage.getItem(DB_KEY));
+}
+
+function saveDB(data) {
+    localStorage.setItem(DB_KEY, JSON.stringify(data));
+}
+
+// Estado da Sessão
+let currentUser = null;
+
+/* --- NAVEGAÇÃO ENTRE TELAS --- */
+function toggleView(viewId) {
+    // Esconde todas
+    document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.view-container').forEach(el => setTimeout(() => el.classList.add('hidden'), 0));
+    
+    // Mostra a desejada
+    const target = document.getElementById(viewId);
+    target.classList.remove('hidden');
+    setTimeout(() => target.classList.add('active'), 10);
+}
+
+/* --- AUTENTICAÇÃO --- */
+document.getElementById('form-login').addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    const user = document.getElementById('login-user').value.trim();
+    const pass = document.getElementById('login-pass').value.trim();
+    const errorMsg = document.getElementById('login-error');
+
+    const db = getDB();
+    const foundUser = db.users.find(u => u.user === user && u.pass === pass);
+
+    if (foundUser) {
+        // Sucesso
+        currentUser = foundUser;
+        errorMsg.classList.add('hidden');
         
-        lista.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'card-result';
-            card.innerHTML = `
-                <div class="info">
-                    <h3>${item.nome} ${item.tag ? `<span class="tag">${item.tag}</span>` : ''}</h3>
-                    <p>Chega em ${item.prazo}</p>
-                </div>
-                <div class="price">
-                    ${item.preco.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}
-                </div>
-            `;
-            cardsList.appendChild(card);
-        });
+        // Configura a tela do App
+        document.getElementById('display-username').innerText = currentUser.role === 'admin' ? 'Administrador' : currentUser.user;
+        
+        // Mostra botão admin se for admin
+        if(currentUser.role === 'admin') {
+            document.getElementById('btn-admin-panel').classList.remove('hidden');
+            // Carrega config atual no painel
+            document.getElementById('conf-price').value = db.config.pricePerTonKm;
+        } else {
+            document.getElementById('btn-admin-panel').classList.add('hidden');
+        }
 
-        resultsDiv.classList.remove('hidden');
-        resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Limpa campos
+        document.getElementById('login-user').value = "";
+        document.getElementById('login-pass').value = "";
+
+        toggleView('view-app');
+    } else {
+        // Erro
+        errorMsg.classList.remove('hidden');
     }
 });
+
+function logout() {
+    currentUser = null;
+    toggleView('view-login');
+}
+
+/* --- LÓGICA DO SIMULADOR --- */
+document.getElementById('form-simulador').addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const btn = e.target.querySelector('button');
+    const loader = btn.querySelector('.loader');
+    const span = btn.querySelector('span');
+    const resultArea = document.getElementById('resultado-area');
+
+    // Validação Simples
+    const peso = parseFloat(document.getElementById('peso-ton').value);
+    const origem = document.getElementById('origem-cidade').value;
+    const destino = document.getElementById('destino-cidade').value;
+
+    if (!peso || !origem || !destino) {
+        alert("Preencha todos os campos da rota e carga.");
+        return;
+    }
+
+    // UI Loading
+    btn.disabled = true;
+    span.style.display = 'none';
+    loader.style.display = 'block';
+    resultArea.classList.add('hidden');
+
+    setTimeout(() => {
+        // CÁLCULO FICTÍCIO INTELIGENTE
+        // Gera uma distância aleatória baseada no "hash" dos nomes para ser consistente
+        // (Ex: Sorriso -> Santos sempre dará a mesma distância fictícia)
+        const rotaStr = origem + destino;
+        let hash = 0;
+        for (let i = 0; i < rotaStr.length; i++) hash = rotaStr.charCodeAt(i) + ((hash << 5) - hash);
+        const distanciaFicticia = (Math.abs(hash) % 1500) + 200; // Entre 200km e 1700km
+
+        // Pega preço do banco
+        const db = getDB();
+        const precoPorTonKm = db.config.pricePerTonKm;
+
+        // Fórmula: (Peso * Distancia * PreçoConfig)
+        const total = peso * distanciaFicticia * precoPorTonKm;
+
+        // Mostrar Resultado
+        document.getElementById('price-value').innerText = total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
+        resultArea.classList.remove('hidden');
+        
+        // Reset UI
+        btn.disabled = false;
+        span.style.display = 'block';
+        loader.style.display = 'none';
+    }, 1000);
+});
+
+/* --- LÓGICA DO ADMIN --- */
+
+// 1. Criar Usuário
+document.getElementById('form-create-user').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if(currentUser.role !== 'admin') return;
+
+    const newUser = document.getElementById('new-user').value;
+    const newPass = document.getElementById('new-pass').value;
+    const msg = document.getElementById('user-msg');
+
+    if(newUser && newPass) {
+        const db = getDB();
+        // Evita duplicados
+        if(db.users.find(u => u.user === newUser)) {
+            alert("Usuário já existe!");
+            return;
+        }
+
+        db.users.push({ user: newUser, pass: newPass, role: 'user' });
+        saveDB(db);
+
+        msg.classList.remove('hidden');
+        setTimeout(() => msg.classList.add('hidden'), 3000);
+        
+        document.getElementById('new-user').value = "";
+        document.getElementById('new-pass').value = "";
+    }
+});
+
+// 2. Salvar Configurações
+function saveConfig() {
+    if(currentUser.role !== 'admin') return;
+
+    const newPrice = parseFloat(document.getElementById('conf-price').value);
+    const msg = document.getElementById('config-msg');
+
+    if(newPrice) {
+        const db = getDB();
+        db.config.pricePerTonKm = newPrice;
+        saveDB(db);
+
+        msg.classList.remove('hidden');
+        setTimeout(() => msg.classList.add('hidden'), 3000);
+    }
+}
+
+// Inicializa tudo
+initDB();
+// Começa no Login
+toggleView('view-login');
