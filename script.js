@@ -1,16 +1,13 @@
-/* --- BANCO DE DADOS LOCAL (SIMULAÇÃO) --- */
+/* --- BANCO DE DADOS LOCAL --- */
 const DB_KEY = "ag_croppers_db";
 
-// Inicializa o banco se não existir
 function initDB() {
     if (!localStorage.getItem(DB_KEY)) {
         const initialData = {
             users: [
-                { user: "admin", pass: "admin", role: "admin" } // Usuário Padrão
+                { user: "admin", pass: "admin", role: "admin" }
             ],
-            config: {
-                pricePerTonKm: 0.85 // Preço padrão
-            }
+            config: { pricePerTonKm: 0.85 }
         };
         localStorage.setItem(DB_KEY, JSON.stringify(initialData));
     }
@@ -24,19 +21,24 @@ function saveDB(data) {
     localStorage.setItem(DB_KEY, JSON.stringify(data));
 }
 
-// Estado da Sessão
 let currentUser = null;
 
-/* --- NAVEGAÇÃO ENTRE TELAS --- */
+/* --- NAVEGAÇÃO ENTRE TELAS (CORRIGIDO) --- */
 function toggleView(viewId) {
-    // Esconde todas
-    document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.view-container').forEach(el => setTimeout(() => el.classList.add('hidden'), 0));
+    const containers = document.querySelectorAll('.view-container');
     
-    // Mostra a desejada
-    const target = document.getElementById(viewId);
-    target.classList.remove('hidden');
-    setTimeout(() => target.classList.add('active'), 10);
+    containers.forEach(el => {
+        if (el.id === viewId) {
+            // Se for a tela que queremos mostrar:
+            el.classList.remove('hidden');
+            // Pequeno delay para permitir a animação CSS
+            setTimeout(() => el.classList.add('active'), 50);
+        } else {
+            // Se for qualquer outra tela:
+            el.classList.remove('active');
+            el.classList.add('hidden');
+        }
+    });
 }
 
 /* --- AUTENTICAÇÃO --- */
@@ -51,29 +53,24 @@ document.getElementById('form-login').addEventListener('submit', (e) => {
     const foundUser = db.users.find(u => u.user === user && u.pass === pass);
 
     if (foundUser) {
-        // Sucesso
         currentUser = foundUser;
         errorMsg.classList.add('hidden');
         
-        // Configura a tela do App
         document.getElementById('display-username').innerText = currentUser.role === 'admin' ? 'Administrador' : currentUser.user;
         
-        // Mostra botão admin se for admin
         if(currentUser.role === 'admin') {
             document.getElementById('btn-admin-panel').classList.remove('hidden');
-            // Carrega config atual no painel
             document.getElementById('conf-price').value = db.config.pricePerTonKm;
         } else {
             document.getElementById('btn-admin-panel').classList.add('hidden');
         }
 
-        // Limpa campos
+        // Limpa inputs
         document.getElementById('login-user').value = "";
         document.getElementById('login-pass').value = "";
 
         toggleView('view-app');
     } else {
-        // Erro
         errorMsg.classList.remove('hidden');
     }
 });
@@ -92,7 +89,6 @@ document.getElementById('form-simulador').addEventListener('submit', (e) => {
     const span = btn.querySelector('span');
     const resultArea = document.getElementById('resultado-area');
 
-    // Validação Simples
     const peso = parseFloat(document.getElementById('peso-ton').value);
     const origem = document.getElementById('origem-cidade').value;
     const destino = document.getElementById('destino-cidade').value;
@@ -102,34 +98,27 @@ document.getElementById('form-simulador').addEventListener('submit', (e) => {
         return;
     }
 
-    // UI Loading
     btn.disabled = true;
     span.style.display = 'none';
     loader.style.display = 'block';
     resultArea.classList.add('hidden');
 
     setTimeout(() => {
-        // CÁLCULO FICTÍCIO INTELIGENTE
-        // Gera uma distância aleatória baseada no "hash" dos nomes para ser consistente
-        // (Ex: Sorriso -> Santos sempre dará a mesma distância fictícia)
+        // Cálculo Fictício (Hash de distância)
         const rotaStr = origem + destino;
         let hash = 0;
         for (let i = 0; i < rotaStr.length; i++) hash = rotaStr.charCodeAt(i) + ((hash << 5) - hash);
-        const distanciaFicticia = (Math.abs(hash) % 1500) + 200; // Entre 200km e 1700km
+        const distanciaFicticia = (Math.abs(hash) % 1500) + 200;
 
-        // Pega preço do banco
         const db = getDB();
         const precoPorTonKm = db.config.pricePerTonKm;
 
-        // Fórmula: (Peso * Distancia * PreçoConfig)
         const total = peso * distanciaFicticia * precoPorTonKm;
 
-        // Mostrar Resultado
         document.getElementById('price-value').innerText = total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         
         resultArea.classList.remove('hidden');
         
-        // Reset UI
         btn.disabled = false;
         span.style.display = 'block';
         loader.style.display = 'none';
@@ -137,11 +126,9 @@ document.getElementById('form-simulador').addEventListener('submit', (e) => {
 });
 
 /* --- LÓGICA DO ADMIN --- */
-
-// 1. Criar Usuário
 document.getElementById('form-create-user').addEventListener('submit', (e) => {
     e.preventDefault();
-    if(currentUser.role !== 'admin') return;
+    if(!currentUser || currentUser.role !== 'admin') return;
 
     const newUser = document.getElementById('new-user').value;
     const newPass = document.getElementById('new-pass').value;
@@ -149,7 +136,6 @@ document.getElementById('form-create-user').addEventListener('submit', (e) => {
 
     if(newUser && newPass) {
         const db = getDB();
-        // Evita duplicados
         if(db.users.find(u => u.user === newUser)) {
             alert("Usuário já existe!");
             return;
@@ -166,9 +152,8 @@ document.getElementById('form-create-user').addEventListener('submit', (e) => {
     }
 });
 
-// 2. Salvar Configurações
 function saveConfig() {
-    if(currentUser.role !== 'admin') return;
+    if(!currentUser || currentUser.role !== 'admin') return;
 
     const newPrice = parseFloat(document.getElementById('conf-price').value);
     const msg = document.getElementById('config-msg');
@@ -183,7 +168,10 @@ function saveConfig() {
     }
 }
 
-// Inicializa tudo
+// INICIALIZAÇÃO
 initDB();
-// Começa no Login
-toggleView('view-login');
+
+// Garante que o DOM carregou antes de chamar
+document.addEventListener("DOMContentLoaded", () => {
+    toggleView('view-login');
+});
