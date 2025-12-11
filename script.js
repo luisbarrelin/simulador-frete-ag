@@ -1,148 +1,121 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // Elementos do DOM
+    // --- Elementos ---
     const form = document.getElementById('frete-form');
-    const btn = document.getElementById('btn-calculate');
-    const errorBox = document.getElementById('error-message');
-    const resultsArea = document.getElementById('results-area');
+    const btn = document.getElementById('btn-calc');
+    const errorMsg = document.getElementById('error-msg');
+    const resultsDiv = document.getElementById('results');
     const cardsList = document.getElementById('cards-list');
 
-    // Inputs com Máscara
-    const cepOrigem = document.getElementById('cep-origem');
-    const cepDestino = document.getElementById('cep-destino');
-
-    // --- FUNÇÕES UTILITÁRIAS ---
-
-    // Máscara de CEP (00000-000)
-    const maskCep = (value) => {
-        return value
-            .replace(/\D/g, '')
-            .replace(/(\d{5})(\d)/, '$1-$2')
-            .substr(0, 9);
+    // --- Máscara de CEP (00000-000) ---
+    const mascaraCep = (event) => {
+        let input = event.target;
+        input.value = input.value.replace(/\D/g, '')
+                                 .replace(/^(\d{5})(\d)/, '$1-$2');
     };
 
-    // Formata Moeda (R$)
-    const formatCurrency = (value) => {
-        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    };
+    document.getElementById('cep-origin').addEventListener('input', mascaraCep);
+    document.getElementById('cep-dest').addEventListener('input', mascaraCep);
 
-    // Event Listeners para Máscaras
-    [cepOrigem, cepDestino].forEach(input => {
-        input.addEventListener('input', (e) => {
-            e.target.value = maskCep(e.target.value);
-        });
-    });
-
-    // --- LÓGICA PRINCIPAL ---
-
+    // --- Lógica Principal ---
     form.addEventListener('submit', (e) => {
         e.preventDefault();
 
-        // 1. Coleta de Dados
-        const peso = parseFloat(document.getElementById('peso').value);
-        const valor = parseFloat(document.getElementById('valor').value) || 0;
-        const altura = parseFloat(document.getElementById('altura').value);
-        const largura = parseFloat(document.getElementById('largura').value);
-        const comprimento = parseFloat(document.getElementById('comprimento').value);
+        // 1. Pegar Valores
+        const peso = parseFloat(document.getElementById('weight').value);
+        const altura = parseFloat(document.getElementById('height').value);
+        const largura = parseFloat(document.getElementById('width').value);
+        const comprimento = parseFloat(document.getElementById('length').value);
+        const valorDeclarado = parseFloat(document.getElementById('value').value) || 0;
+        const cepOrigem = document.getElementById('cep-origin').value;
+        const cepDest = document.getElementById('cep-dest').value;
 
-        // 2. Validação
-        if (!cepOrigem.value || !cepDestino.value || !peso || !altura || !largura || !comprimento) {
-            showError(true);
+        // 2. Validar
+        if(!peso || !altura || !largura || !comprimento || cepOrigem.length < 9 || cepDest.length < 9) {
+            errorMsg.classList.remove('hidden');
             return;
         }
-        showError(false);
+        errorMsg.classList.add('hidden');
 
-        // 3. Estado de Loading
-        setLoading(true);
+        // 3. Estado de Carregamento
+        btn.disabled = true;
+        btn.querySelector('.btn-text').style.display = 'none';
+        btn.querySelector('.loader').style.display = 'block';
+        resultsDiv.classList.add('hidden');
 
-        // 4. Cálculo (Simulado com delay para UX)
+        // 4. Calcular (Simulando delay de rede)
         setTimeout(() => {
-            const resultados = calcularFrete(peso, altura, largura, comprimento, valor);
-            renderizarResultados(resultados);
-            setLoading(false);
-        }, 800);
+            const opcoes = calcularLogica(peso, altura, largura, comprimento, valorDeclarado);
+            renderizarCards(opcoes);
+            
+            // Restaurar botão
+            btn.disabled = false;
+            btn.querySelector('.btn-text').style.display = 'block';
+            btn.querySelector('.loader').style.display = 'none';
+        }, 1000);
     });
 
-    function showError(show) {
-        errorBox.style.display = show ? 'block' : 'none';
-        if(show) errorBox.classList.add('shake'); // Poderia adicionar animação CSS aqui
-    }
-
-    function setLoading(isLoading) {
-        if (isLoading) {
-            btn.disabled = true;
-            btn.querySelector('span').innerText = "Calculando...";
-            resultsArea.classList.add('hidden');
-        } else {
-            btn.disabled = false;
-            btn.querySelector('span').innerText = "Calcular Estimativa";
-        }
-    }
-
-    // Lógica Matemática do Cálculo
-    function calcularFrete(peso, alt, larg, comp, valorDeclarado) {
-        // Base de cálculo
-        const taxaBase = 15.00;
-        const precoKg = 1.50; // R$ 1,50 por kg
-        const fatorCubagem = 0.003; // Fator fictício para cm³
+    // --- O Cérebro Matemático (Sua Lógica) ---
+    function calcularLogica(peso, alt, larg, comp, valor) {
+        // Base R$ 10,00
+        const base = 10.00;
         
-        const pesoFisico = peso * precoKg;
-        const pesoCubico = (alt * larg * comp) * fatorCubagem;
-        const seguro = valorDeclarado * 0.01; // 1% do valor
+        // Peso: R$ 1,20 por kg
+        const custoPeso = peso * 1.20;
+        
+        // Volume: R$ 0,05 por cm³ (fictício, ajustado para não ficar milionário)
+        // Usando fator de cubagem padrão transporte (300) para realismo
+        const cubagem = (alt * larg * comp) / 6000; 
+        const custoVolume = cubagem * 5.00; // R$ 5,00 por kg cúbico
 
-        // O preço final considera o maior valor entre peso físico e cúbico
-        const custoTransporte = Math.max(pesoFisico, pesoCubico) + taxaBase + seguro;
+        // Seguro: 0.5% do valor
+        const seguro = valor * 0.005;
 
-        // Gerar Transportadoras
+        // Preço Base Final
+        const precoFinal = base + Math.max(custoPeso, custoVolume) + seguro;
+
         return [
             {
-                nome: "Correios PAC",
-                prazo: "5 a 8 dias úteis",
-                preco: custoTransporte,
-                badge: null
+                nome: "Econômico (PAC)",
+                prazo: "7 a 10 dias úteis",
+                preco: precoFinal,
+                tag: null
             },
             {
-                nome: "Sedex Express",
-                prazo: "1 a 3 dias úteis",
-                preco: custoTransporte * 1.6, // 60% mais caro
-                badge: "Mais Rápido"
+                nome: "Expresso (Sedex)",
+                prazo: "2 a 4 dias úteis",
+                preco: precoFinal * 1.6, // 60% mais caro
+                tag: "Rápido"
             },
             {
-                nome: "Loggi Standard",
-                prazo: "3 a 6 dias úteis",
-                preco: custoTransporte * 1.1,
-                badge: "Melhor Custo"
+                nome: "Flash Delivery",
+                prazo: "Até 24 horas",
+                preco: precoFinal * 2.5, // 150% mais caro
+                tag: "VIP"
             }
         ];
     }
 
-    // Manipulação do DOM para criar os cards
-    function renderizarResultados(opcoes) {
-        cardsList.innerHTML = ''; // Limpa anteriores
-
-        opcoes.forEach(opt => {
+    // --- Renderizar na Tela ---
+    function renderizarCards(lista) {
+        cardsList.innerHTML = '';
+        
+        lista.forEach(item => {
             const card = document.createElement('div');
-            card.className = 'result-card';
-            
-            // HTML Interno do Card
+            card.className = 'card-result';
             card.innerHTML = `
-                <div class="carrier-info">
-                    <div style="display:flex; align-items:center">
-                        <h3>${opt.nome}</h3>
-                        ${opt.badge ? `<span class="badge">${opt.badge}</span>` : ''}
-                    </div>
-                    <p>Entrega em ${opt.prazo}</p>
+                <div class="info">
+                    <h3>${item.nome} ${item.tag ? `<span class="tag">${item.tag}</span>` : ''}</h3>
+                    <p>Chega em ${item.prazo}</p>
                 </div>
-                <div class="carrier-price">
-                    ${formatCurrency(opt.preco)}
+                <div class="price">
+                    ${item.preco.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}
                 </div>
             `;
-            
             cardsList.appendChild(card);
         });
 
-        resultsArea.classList.remove('hidden');
-        // Scroll suave até o resultado
-        resultsArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        resultsDiv.classList.remove('hidden');
+        resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 });
